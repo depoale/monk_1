@@ -7,16 +7,26 @@ Original file is located at
     https://colab.research.google.com/drive/1U_MiiIKuRphcbJ_xKi552Bsa-Dng31jf
 """
 
-#from google.colab import drive
-#drive.mount('/content/drive')
+# from google.colab import drive
+# drive.mount('/content/drive')
 
 import pandas as pd
-import random 
+import random
 import numpy as np
 import numpy.typing as npt
 from sklearn.preprocessing import OneHotEncoder
+from utils import net_fun, act_tanh, act_ltu, derivative_tanh
 
 df = pd.read_csv('monks-1.train', sep='\s+', skip_blank_lines=False, skipinitialspace=False)
+
+L = len(df)
+ETA = 10e-4 / L
+ALPHA = 0.5
+LAMBDA = 0.001
+N_UNITS = 3
+N_EPOCHS = 500
+ERROR = 1000
+random.seed(42)
 
 df_enc = df.drop(['class', 'ID'], axis=1)
 print()
@@ -30,75 +40,89 @@ enc = OneHotEncoder()
 enc.fit(df_class)
 df_class = enc.transform(df_class).toarray()
 
-
-L = len(df)
-ETA = 10e-4/L
-ALPHA = 0.5
-LAMBDA = 0.001
-N_UNITS = 3
-N_EPOCHS = 500
-ERROR = 1000
-random.seed(42)
-
-def net(w, x):
-  return np.dot(w, x)
-
-def act_func(x, alpha):
-  return np.tanh(alpha*x/2)
-
-def act_ltu(x):
-  return np.heaviside(x,0)
-
-def act_derivative(x, alpha):
-  return (1-(np.tanh(alpha*x/2))**2)
-
 class Layer:
+    ''' single layer (no distiction btw hidden and output layer)'''
 
-  ''' single layer '''
+    def __init__(self, n_inputs, n_units):
 
-  def __init__(self, n_inputs, n_units):
+        self.n_inputs = n_inputs
+        self.n_units = n_units
 
-    self.n_inputs = n_inputs
-    self.n_units = n_units
+        # weights initialised randomly btw -0.7 and 0.7
+        self.weights = np.random.uniform(-0.7, 0.7, size=(n_units, n_inputs))
 
-    self.weights = np.random.uniform(-0.7, 0.7, size=(n_units, n_inputs))
+        self.x = np.zeros(n_inputs)  # layer inputs
+        self.d = [0, 1]  # final target (forse dobbiamo inizializzarlo a tuple)
+        self.deltas = np.full(self.n_units, 12.)  # layer delta array (initialised as zero, overwritten w/ backprop algorithm)
+        self.out_vec = np.full(self.n_units, 12.)
+        self.net = np.full(self.n_units, 12.)
 
-    self.x = np.zeros(n_inputs)
-    self.d = 0
-    self.deltas = np.zeros(n_units)
+    def __iter__(self):
+        return iter(range(self.n_units))
 
-  def load_input(self, input_values: npt.ArrayLike, target):
-    self.x = input_values
-    self.d = target
+    def load_input(self, input_values: npt.ArrayLike, target):
+        '''Used to load one hot encoded data onto 1st hidden layer as input.
+        We save the target value aswell.'''
+        self.x = input_values
+        self.d = target
 
-  def forward(self, next_l):
-    out_vec = np.full(self.n_units, 12.)
-    for i in range(len(self.weights)):
-      out_vec[i] = net(self.weights[i], self.x)
-    next_l.x = out_vec
+    def compute_output(self, activation) -> npt.NDArray:
+        """create and compute out_vec (shape=n_units)"""
+        for i in range(self.n_units):
+            self.net[i] = net_fun(self.weights[i], self.x)  # net[i] is the ith-unit net
+        self.out_vec = activation(self.net)
+
+    def forward(self, next_l):
+        '''feedforward NN function. Evauate current layer outputs and set them as next layer inputs
+        :param next_l: next layer
+        :return: none
+        '''
+        next_l.x = self.out_vec  # we use act_tanh (not act_ltu) bc this is used only by hidden layers
+
+    def evaluate_delta_partial_hidden(self, previous_layer):
+        """ Evaluate partially delta hidden layer
+        (only sum over k (w_kj \cdot delta_k)) """
+        partial_delta = np.zeros(previous_layer.n_units)
+        for j in range(previous_layer.n_units):
+            for i in range(self.n_units):
+                partial_delta[j] += self.weights[i][j]*self.deltas[i]
+
+        previous_layer.deltas = partial_delta
+
+    def evaluate_delta_hidden(self):
+        """using partial_delta, evaluate the final delta for backprop
+        remember: self.deltas= partial_delta computed by the next layer in previous step"""
+        self.deltas = self.deltas * derivative_tanh(self.net)
 
 
-  def evaluate_delta_hidden(self, next_delta):
-    pass
+    def evaluate_delta_output(self):
+        ''' delta output layer for backprop'''
+        for j in range(self.n_units):
+            self.deltas[j] = (self.d[j] - self.out_vec[j]) * derivative_tanh(self.out_vec[j], ALPHA)
 
 
+    def update_weights(self, previous_layer):
+        '''
+        Update weights using on-line gradient descend
+        :param previous_layer:
+        :return:none
+        '''
 
-  def evaluate_delta_output(self):
-    ''' delta output layer'''
-    
-    for j in range(2):
-      for i in range(len(self.x)-1):
-       print(self.d)
-       print(self.x[i])
-       self.deltas[j] = (self.d[j] - self.x[i])* act_derivative(self.x[i], ALPHA)
-'''
+        ####VERY WRONG :(
+        print('\nall',self.weights)
+        print('\n1st',self.weights[0])
+        print('\n2nd',self.weights[:, 0])
+        print('\n x', self.x)
+        print('\n deltas', self.deltas)
 
-df
+        for i in range(previous_layer.n_units):
+            self.weights[i] += ETA*self.deltas*self.x[i]-LAMBDA*self.weights[i]
 
-hidden = Layer(17,N_UNITS)
-output_l= Layer(N_UNITS,2)
-hidden.load_input(df_ohe[8], df_class[8])
-hidden.forward(output_l)
-print(output_l.x)
-output_l.evaluate_delta_output()
-'''
+
+if __name__ == '__main__':
+    hidden = Layer(17, N_UNITS)
+    output_l = Layer(N_UNITS, 2)
+    hidden.load_input(df_ohe[8], df_class[8])
+    hidden.forward(output_l)
+    output_l.evaluate_delta_output()
+    print(np.shape(output_l.deltas))

@@ -82,10 +82,8 @@ class Layer:
         if not (type(input_values) or type(target)) is np.ndarray:
             raise TypeError(f'Inputs and target must be array-like')
 
-        #### da sistemareeeee (fallisce in unittest but why??)
-        if self.n_units != len(input_values):
-            # raise IndexError(f'Input dimension and number of units dont match')
-            pass
+        if len(self.x) != len(input_values):
+            raise IndexError(f'Input dimension and length layer.x dont match')
 
         self.x = input_values
         self.d = target

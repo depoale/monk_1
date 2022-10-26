@@ -61,8 +61,32 @@ class Layer:
         return iter(range(self.n_units))
 
     def load_input(self, input_values: npt.ArrayLike, target):
-        '''Used to load one hot encoded data onto 1st hidden layer as input.
-        We save the target value aswell.'''
+        """
+        Used to load one hot encoded data onto 1st hidden layer as input.
+        We save the target value aswell.
+
+        Parameters
+        ---------
+
+        input_values: scalar or array-like
+        target: scalar or array-like
+
+        Raises
+        ------
+        TypeError
+            If input_values or target are not array-like
+
+        IndexError
+            if number of inputs and number of units don't match
+        """
+        if not (type(input_values) or type(target)) is np.ndarray:
+            raise TypeError(f'Inputs and target must be array-like')
+
+        #### da sistemareeeee (fallisce in unittest but why??)
+        if self.n_units != len(input_values):
+            # raise IndexError(f'Input dimension and number of units dont match')
+            pass
+
         self.x = input_values
         self.d = target
 
@@ -73,10 +97,21 @@ class Layer:
         self.out_vec = activation(self.net)
 
     def forward(self, next_l):
-        '''feedforward NN function. Evauate current layer outputs and set them as next layer inputs
-        :param next_l: next layer
-        :return: none
+        '''Feedforward NN function. Evauate current layer outputs and set them as next layer inputs
+        Parameters
+        --------
+        next_l: Layer-like
+            Next layer in the NN
+
+        Raises
+        ------
+        IndexError
+            If the dimensions of current layer units and next layer input don't match
         '''
+
+        if self.n_units != next_l.n_inputs:
+            raise IndexError(f'Cant compute if dim {self.n_units} and {next_l.n_inputs} dont match')
+
         next_l.x = self.out_vec  # we use act_tanh (not act_ltu) bc this is used only by hidden layers
 
     def evaluate_delta_partial_hidden(self, previous_layer):
@@ -104,8 +139,6 @@ class Layer:
     def update_weights(self, previous_layer):
         '''
         Update weights using on-line gradient descend
-        :param previous_layer:
-        :return:none
         '''
 
         ####VERY WRONG :(

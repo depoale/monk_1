@@ -95,7 +95,7 @@ class Layer:
             raise IndexError(f'Target size and output size dont match')
 
         self.x = input_values
-        self.d = target
+        self.d = target.astype(float)
 
     def compute_output(self, activation=act_tanh) -> npt.NDArray:
         """

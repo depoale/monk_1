@@ -1,6 +1,7 @@
 import unittest
 import sys
 import numpy as np
+from matplotlib import pyplot as plt
 import random
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
@@ -49,32 +50,43 @@ class NnTests(unittest.TestCase):
         #self.forward_(17, 7, 2, row=12)
 
     def delta_(self, n_in, n_hid, n_out, row):
+        print(df_class)
+        print('fine\n')
+        final_class = []
+        final_d = []
         lay1, lay2 = self.create(n_in, n_hid, n_out, row)
-
         for epoch in range(100):
-            lay1.load_input(df_ohe[row], df_class[row])
-            lay1.compute_output(monk_1.act_tanh)
-            for i in lay1.out_vec:
-                self.assertTrue(-1 < i < 1.)
-            lay1.forward(lay2)
-            self.assertListEqual(lay1.out_vec.tolist(), lay2.x.tolist())
-            lay2.compute_output(monk_1.act_ltu)
-            for i in lay2.out_vec:
-                self.assertTrue(0. <= i <= 1.)
+            for pattern in range(len(df)):
+                lay1.load_input(df_ohe[pattern], df_class[pattern])
+                print(df_class[pattern])
+                lay1.compute_output(monk_1.act_tanh)
+                for i in lay1.out_vec:
+                    self.assertTrue(-1 < i < 1.)
+                lay1.forward(lay2)
+                self.assertListEqual(lay1.out_vec.tolist(), lay2.x.tolist())
+                lay2.compute_output(monk_1.act_ltu)
+                for i in lay2.out_vec:
+                    self.assertTrue(0. <= i <= 1.)
 
-            lay2.evaluate_delta_output()
-            #print(f'\n delta: {lay2.deltas}')
-            lay2.evaluate_delta_partial_hidden(lay1)
-            self.assertTrue(lay1.deltas.tolist() != 12.)
-            lay1.evaluate_delta_hidden()
-            for i in lay2.deltas:
-                self.assertTrue(-1. <= i <= 1.)
+                lay2.evaluate_delta_output()
+                #print(f'\n delta: {lay2.deltas}')
+                lay2.evaluate_delta_partial_hidden(lay1)
+                self.assertTrue(lay1.deltas.tolist() != 12.)
+                lay1.evaluate_delta_hidden()
+                for i in lay2.deltas:
+                    self.assertTrue(-1. <= i <= 1.)
 
-            lay2.update_weights()
-            lay1.update_weights()
+                lay2.update_weights()
+                lay1.update_weights()
+                if epoch == 100-1:
+                    print(lay2.out_vec, lay2.d)
+                    final_class.append(lay2.out_vec)
+                    final_d.append(lay2.d)
 
-        print(f'\ncomputed output{lay2.out_vec}')
-        print(f'expected output{lay2.d}')
+            #print(final_class[0])
+
+        for element in final_class:
+            pass
 
 
 

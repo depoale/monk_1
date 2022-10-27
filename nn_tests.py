@@ -24,8 +24,8 @@ df_class = enc.transform(df_class).toarray()
 
 class NnTests(unittest.TestCase):
     def create(self, n_in, n_hid, n_out, row):
-        lay1 = Layer(n_in, n_hid)
-        lay2 = Layer(n_hid, n_out)
+        lay1 = Layer(n_in, n_hid, n_out)
+        lay2 = Layer(n_hid, n_out, n_out)
         lay1.load_input(df_ohe[row], df_class[row])
         return lay1, lay2
 
@@ -45,39 +45,44 @@ class NnTests(unittest.TestCase):
 
     def forward_func(self):
         self.forward_(17, 4, 2, row=8)
-        self.forward_(17, 8, 3, row=24)
-        self.forward_(17, 7, 2, row=12)
+        #self.forward_(17, 8, 3, row=24)
+        #self.forward_(17, 7, 2, row=12)
 
     def delta_(self, n_in, n_hid, n_out, row):
         lay1, lay2 = self.create(n_in, n_hid, n_out, row)
-        lay1.compute_output(monk_1.act_tanh)
-        for i in lay1.out_vec:
-            self.assertTrue(-1 < i < 1.)
-        lay1.forward(lay2)
-        self.assertListEqual(lay1.out_vec.tolist(), lay2.x.tolist())
-        lay2.compute_output(monk_1.act_ltu)
-        for i in lay2.out_vec:
-            self.assertTrue(0. <= i <= 1.)
 
-        lay2.evaluate_delta_output()
-        lay2.evaluate_delta_partial_hidden(lay1)
-        self.assertTrue(lay1.deltas.tolist() != 12.)
-        lay1.evaluate_delta_hidden()
-        for i in lay2.deltas:
-            print(i)
-            self.assertTrue(-1. <= i <= 1.)
+        for epoch in range(100):
+            lay1.load_input(df_ohe[row], df_class[row])
+            lay1.compute_output(monk_1.act_tanh)
+            for i in lay1.out_vec:
+                self.assertTrue(-1 < i < 1.)
+            lay1.forward(lay2)
+            self.assertListEqual(lay1.out_vec.tolist(), lay2.x.tolist())
+            lay2.compute_output(monk_1.act_ltu)
+            for i in lay2.out_vec:
+                self.assertTrue(0. <= i <= 1.)
 
-        #lay2.update_weights(lay1)
-        #print(lay1.weights)
+            lay2.evaluate_delta_output()
+            #print(f'\n delta: {lay2.deltas}')
+            lay2.evaluate_delta_partial_hidden(lay1)
+            self.assertTrue(lay1.deltas.tolist() != 12.)
+            lay1.evaluate_delta_hidden()
+            for i in lay2.deltas:
+                self.assertTrue(-1. <= i <= 1.)
 
+            lay2.update_weights()
+            lay1.update_weights()
+
+        print(f'\ncomputed output{lay2.out_vec}')
+        print(f'expected output{lay2.d}')
 
 
 
     def test_delta(self):
         """a few tests using the function delta_"""
         self.delta_(17, 4, 2, row=8)
-        self.delta_(17, 8, 3, row=24)
-        self.delta_(17, 7, 2, row=12)
+        #self.delta_(17, 8, 3, row=24)
+        #self.delta_(17, 7, 2, row=12)
 
     def test_iter(self):
         """test iteration"""

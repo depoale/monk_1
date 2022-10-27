@@ -20,7 +20,7 @@ from utils import net_fun, act_tanh, act_ltu, derivative_tanh
 df = pd.read_csv('monks-1.train', sep='\s+', skip_blank_lines=False, skipinitialspace=False)
 
 L = len(df)
-ETA = 10e-4 / L
+ETA = 10e-2 / L
 ALPHA = 0.5
 LAMBDA = 0.001
 N_UNITS = 3
@@ -43,13 +43,13 @@ df_class = enc.transform(df_class).toarray()
 class Layer:
     ''' single layer (no distiction btw hidden and output layer)'''
 
-    def __init__(self, n_inputs, n_units):
+    def __init__(self, n_inputs, n_units, class_num=2):
 
         self.n_inputs = n_inputs
         self.n_units = n_units
+        self.class_num = class_num
 
-        #sulle slides diceva di fare l'inizializzazione usando l'inverso del fan-in
-        # (numero inputs per unità)
+       #initialize weights using fan-in inverse
         fan_in = n_inputs
         self.weights = np.random.uniform(-1/fan_in, 1/fan_in, size=(n_units, n_inputs))
 
@@ -66,7 +66,7 @@ class Layer:
     def load_input(self, input_values: npt.ArrayLike, target):
         """
         Used to load one hot encoded data onto 1st hidden layer as input.
-        We save the target value aswell.
+        We save the target values aswell.
 
         Parameters
         ---------
@@ -80,13 +80,19 @@ class Layer:
             If input_values or target are not array-like
 
         IndexError
-            if number of inputs and number of units don't match
+            If number of expected inputs and actual inputs of units don't match
+
+        IndexError
+            If target size and output size don't match
         """
         if not (type(input_values) or type(target)) is np.ndarray:
             raise TypeError(f'Inputs and target must be array-like')
 
         if len(self.x) != len(input_values):
             raise IndexError(f'Input dimension and length layer.x dont match')
+
+        if len(self.d) != self.class_num:
+            raise IndexError(f'Target size and output size dont match')
 
         self.x = input_values
         self.d = target
@@ -104,7 +110,7 @@ class Layer:
         self.out_vec = activation(self.net)
 
     def forward(self, next_l):
-        '''Feedforward NN function. Evauate current layer outputs and set them as next layer inputs
+        '''Feedforward NN function. Evaluate current layer outputs and set them as next layer inputs
         Parameters
         --------
         next_l: Layer-like
@@ -140,24 +146,19 @@ class Layer:
     def evaluate_delta_output(self):
         ''' delta output layer for backprop'''
         for j in range(self.n_units):
-            self.deltas[j] = (self.d[j] - self.out_vec[j]) * derivative_tanh(self.out_vec[j], ALPHA)
+            self.deltas[j] = (self.d[j] - self.out_vec[j]) * derivative_tanh(self.net[j], ALPHA)
 
 
-    def update_weights(self, previous_layer):
+    def update_weights(self):
         '''
         Update weights using on-line gradient descend
         '''
 
-        ####VERY WRONG :(
-        print('\nall',self.weights)
-        print('\n1st',self.weights[0])
-        print('\n2nd',self.weights[:, 0])
-        print('\n x', self.x)
-        print('\n deltas', self.deltas)
-
-        for i in range(previous_layer.n_units):
-            self.weights[i] += ETA*self.deltas*self.x[i]-LAMBDA*self.weights[i]
-
+        for i in range(self.n_units):
+            for j in range(len(self.x)):   #range(len(self.x))=previous_layer.n_units
+                #print(f'previous: {self.weights[i][j]}')
+                self.weights[i][j] += ETA*self.deltas[i]*self.x[j]-LAMBDA*self.weights[i][j]
+                #print(f'current: {self.weights[i][j]}')
 
 if __name__ == '__main__':
     hidden = Layer(17, N_UNITS)

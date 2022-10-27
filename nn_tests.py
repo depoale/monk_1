@@ -64,6 +64,7 @@ class NnTests(unittest.TestCase):
         self.assertTrue(lay1.deltas.tolist() != 12.)
         lay1.evaluate_delta_hidden()
         for i in lay2.deltas:
+            print(i)
             self.assertTrue(-1. <= i <= 1.)
 
         #lay2.update_weights(lay1)

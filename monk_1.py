@@ -48,12 +48,15 @@ class Layer:
         self.n_inputs = n_inputs
         self.n_units = n_units
 
-        # weights initialised randomly btw -0.7 and 0.7
-        self.weights = np.random.uniform(-0.7, 0.7, size=(n_units, n_inputs))
+        #sulle slides diceva di fare l'inizializzazione usando l'inverso del fan-in
+        # (numero inputs per unità)
+        fan_in = n_inputs
+        self.weights = np.random.uniform(-1/fan_in, 1/fan_in, size=(n_units, n_inputs))
 
         self.x = np.zeros(n_inputs)  # layer inputs
         self.d = [0, 1]  # final target (forse dobbiamo inizializzarlo a tuple)
-        self.deltas = np.full(self.n_units, 12.)  # layer delta array (initialised as zero, overwritten w/ backprop algorithm)
+        self.deltas = np.full(self.n_units, 12.)
+        # layer delta array (initialised as zero, overwritten w/ backprop algorithm)
         self.out_vec = np.full(self.n_units, 12.)
         self.net = np.full(self.n_units, 12.)
 
@@ -88,8 +91,14 @@ class Layer:
         self.x = input_values
         self.d = target
 
-    def compute_output(self, activation) -> npt.NDArray:
-        """create and compute out_vec (shape=n_units)"""
+    def compute_output(self, activation=act_tanh) -> npt.NDArray:
+        """
+        Create and compute out_vec (shape=n_units)
+
+        Parameters
+        ----------
+        activation: activation function, default act_tanh
+        """
         for i in range(self.n_units):
             self.net[i] = net_fun(self.weights[i], self.x)  # net[i] is the ith-unit net
         self.out_vec = activation(self.net)

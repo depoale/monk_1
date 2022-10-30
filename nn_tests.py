@@ -50,15 +50,13 @@ class NnTests(unittest.TestCase):
         #self.forward_(17, 7, 2, row=12)
 
     def delta_(self, n_in, n_hid, n_out, row):
-        print(df_class)
-        print('fine\n')
         final_class = []
         final_d = []
+        accuracy = 0
         lay1, lay2 = self.create(n_in, n_hid, n_out, row)
         for epoch in range(100):
             for pattern in range(len(df)):
                 lay1.load_input(df_ohe[pattern], df_class[pattern])
-                print(df_class[pattern])
                 lay1.compute_output(monk_1.act_tanh)
                 for i in lay1.out_vec:
                     self.assertTrue(-1 < i < 1.)
@@ -80,11 +78,12 @@ class NnTests(unittest.TestCase):
                 lay1.update_weights()
                 if epoch == 100-1:
                     print(lay2.out_vec, lay2.d)
+                    if (lay2.out_vec == lay2.d).all():
+                        accuracy += 1
                     final_class.append(lay2.out_vec)
                     final_d.append(lay2.d)
-
-            #print(final_class[0])
-
+                    
+        print(f'Accuracy:{int((accuracy/len(df_class))*100)}%')
         for element in final_class:
             pass
 

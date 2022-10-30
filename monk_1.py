@@ -110,7 +110,7 @@ class Layer:
         self.out_vec = activation(self.net)
 
     def forward(self, next_l):
-        '''Feedforward NN function. Evaluate current layer outputs and set them as next layer inputs
+        '''Feedforward NN function. Evaluate current layer outputs and set them as next layer inputs. Pass targets to next layer.
         Parameters
         --------
         next_l: Layer-like
@@ -126,6 +126,7 @@ class Layer:
             raise IndexError(f'Cant compute if dim {self.n_units} and {next_l.n_inputs} dont match')
 
         next_l.x = self.out_vec  # we use act_tanh (not act_ltu) bc this is used only by hidden layers
+        next_l.d = self.d
 
     def evaluate_delta_partial_hidden(self, previous_layer):
         """ Evaluate partially delta hidden layer

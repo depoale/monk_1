@@ -1,5 +1,5 @@
 import numpy as np
-ALPHA = 0.5
+ALPHA = 0.8
 
 
 def net_fun(w, x):
@@ -13,6 +13,9 @@ def act_tanh(x, alpha=ALPHA):
 
 def act_ltu(x):
     return np.heaviside(x, 0)
+
+def act_sigmoid(x, alpha=ALPHA):
+    return 1/(1+np.exp(-alpha*x))
 
 
 def derivative_tanh(x, alpha=ALPHA):

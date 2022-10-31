@@ -3,10 +3,13 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt
 import random
+from functools import wraps
+import time
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
-from monk_1 import Layer
+from monk_1 import Layer, N_EPOCHS
 import monk_1
+from utils import net_fun, act_tanh, act_ltu, derivative_tanh, act_sigmoid
 random.seed(42)
 
 df = pd.read_csv('monks-1.train', sep='\s+', skip_blank_lines=False, skipinitialspace=False)
@@ -22,6 +25,17 @@ enc = OneHotEncoder()
 enc.fit(df_class)
 df_class = enc.transform(df_class).toarray()
 
+def execution_time(func):
+    @wraps(func)
+    def execution_time_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        # first item in the args, ie `args[0]` is `self`
+        print(f'\nFunction {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        return result
+    return execution_time_wrapper
 
 class NnTests(unittest.TestCase):
     def create(self, n_in, n_hid, n_out, row):
@@ -54,7 +68,7 @@ class NnTests(unittest.TestCase):
         final_d = []
         accuracy = 0
         lay1, lay2 = self.create(n_in, n_hid, n_out, row)
-        for epoch in range(100):
+        for epoch in range(N_EPOCHS):
             for pattern in range(len(df)):
                 lay1.load_input(df_ohe[pattern], df_class[pattern])
                 lay1.compute_output(monk_1.act_tanh)
@@ -62,7 +76,7 @@ class NnTests(unittest.TestCase):
                     self.assertTrue(-1 < i < 1.)
                 lay1.forward(lay2)
                 self.assertListEqual(lay1.out_vec.tolist(), lay2.x.tolist())
-                lay2.compute_output(monk_1.act_ltu)
+                lay2.compute_output(monk_1.act_sigmoid)
                 for i in lay2.out_vec:
                     self.assertTrue(0. <= i <= 1.)
 
@@ -76,19 +90,19 @@ class NnTests(unittest.TestCase):
 
                 lay2.update_weights()
                 lay1.update_weights()
-                if epoch == 100-1:
+                if epoch == N_EPOCHS-1:
                     print(lay2.out_vec, lay2.d)
                     if (lay2.out_vec == lay2.d).all():
                         accuracy += 1
                     final_class.append(lay2.out_vec)
                     final_d.append(lay2.d)
-                    
+
         print(f'Accuracy:{int((accuracy/len(df_class))*100)}%')
         for element in final_class:
             pass
 
 
-
+    @execution_time
     def test_delta(self):
         """a few tests using the function delta_"""
         self.delta_(17, 4, 2, row=8)

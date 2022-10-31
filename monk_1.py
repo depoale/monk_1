@@ -15,16 +15,16 @@ import random
 import numpy as np
 import numpy.typing as npt
 from sklearn.preprocessing import OneHotEncoder
-from utils import net_fun, act_tanh, act_ltu, derivative_tanh
+from utils import net_fun, act_tanh, act_ltu, derivative_tanh, act_sigmoid
 
 df = pd.read_csv('monks-1.train', sep='\s+', skip_blank_lines=False, skipinitialspace=False)
 
 L = len(df)
-ETA = 10e-2 / L
-ALPHA = 0.5
-LAMBDA = 0.001
-N_UNITS = 3
-N_EPOCHS = 500
+ETA = 10e-1 / L
+ALPHA = 0.8
+LAMBDA = 0.0001
+N_UNITS = 4
+N_EPOCHS = 10000
 ERROR = 1000
 random.seed(42)
 
@@ -52,6 +52,7 @@ class Layer:
        #initialize weights using fan-in inverse
         fan_in = n_inputs
         self.weights = np.random.uniform(-1/fan_in, 1/fan_in, size=(n_units, n_inputs))
+        #self.weights = np.random.uniform(-0.7, 0.7, size=(n_units, n_inputs))
 
         self.x = np.zeros(n_inputs)  # layer inputs
         self.d = [0, 1]  # final target (forse dobbiamo inizializzarlo a tuple)
@@ -156,10 +157,8 @@ class Layer:
         '''
 
         for i in range(self.n_units):
-            for j in range(len(self.x)):   #range(len(self.x))=previous_layer.n_units
-                #print(f'previous: {self.weights[i][j]}')
+            for j in range(len(self.x)):   #range(len(self.x))= previous_layer.n_units
                 self.weights[i][j] += ETA*self.deltas[i]*self.x[j]-LAMBDA*self.weights[i][j]
-                #print(f'current: {self.weights[i][j]}')
 
 if __name__ == '__main__':
     hidden = Layer(17, N_UNITS)
